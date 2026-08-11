@@ -90,10 +90,10 @@
         }
 
         @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); opacity: 1; }
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+            70% { transform: translate(-50%, -50%) scale(0.9); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
 
         @keyframes waveHand {
@@ -233,16 +233,25 @@
         .sparkle:nth-child(9) { top: 25%; left: 70%; animation-delay: 3s; }
         .sparkle:nth-child(10) { top: 80%; left: 20%; animation-delay: 1.8s; }
         
+        .logo-container {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 24px;
+        }
+        
         .logo {
             width: 90px;
             height: 90px;
-            margin: 0 auto 20px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background-image: url('assets/icon.png');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
             animation: bounceIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
-            position: relative;
             z-index: 1;
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
         }
@@ -900,7 +909,7 @@
             <div class="sparkle"></div>
             <div class="sparkle"></div>
 
-            <div style="position: relative; display: inline-block; margin-bottom: 24px;">
+            <div class="logo-container">
                 <div class="logo-ring"></div>
                 <div class="logo-ring"></div>
                 <div class="logo-ring"></div>
