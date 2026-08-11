@@ -397,9 +397,16 @@
             background: #e0e0e0;
             color: #666;
         }
+        /* ─── PENDING: not red ─── */
         .employee-role.pending {
-            background: #ffebee;
-            color: #d63031;
+            background: #fff8e1;
+            color: #f57c00;
+        }
+        /* ─── empty / no role ─── */
+        .employee-role.no-role {
+            background: #f0f0f0;
+            color: #999;
+            font-style: italic;
         }
 
         .employee-actions {
@@ -1417,7 +1424,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 20px;">
-                    <h4 style="font-size: 14px; color: #e65100; margin-bottom: 12px;">⏳ Pending Approvals</h4>
+                    <h4 style="font-size: 14px; color: #f57c00; margin-bottom: 12px;">⏳ Pending Approvals</h4>
                     <div id="pendingEmployeesList"><div class="empty-state" style="padding:20px;">No pending requests</div></div>
                 </div>
                 <div style="margin-top: 20px;">
@@ -1547,8 +1554,6 @@
         let isEmployee = false;
         let businessId = null;
 
-        // ❌ REMOVED: pickupConfirmMap – now using server field businessPickupConfirmed
-
         let businessRole = 'staff';
         let isVerified = false;
         let currentUser = null;
@@ -1558,7 +1563,6 @@
         let currentDetailOrderId = null;
 
         // ===== PERSISTENCE HELPERS =====
-        // ❌ REMOVED: loadPickupMap, savePickupMap
 
         function calcPendingFromOrders(orders) {
             let total = 0;
@@ -1864,6 +1868,7 @@
                 const employees = await Backend.getStaffList(businessId);
                 const roles = await Backend.getRoles(currentUser.id);
 
+                // ── pending: role === 'pending' ──
                 const pending = employees.filter(e => (e.role || '').toLowerCase() === 'pending');
                 if (pending.length === 0) {
                     pendingContainer.innerHTML = '<div class="empty-state" style="padding:20px;">No pending requests</div>';
@@ -1883,25 +1888,41 @@
                         `).join('');
                 }
 
+                // ── active: NOT pending, NOT owner (include empty roles) ──
                 const active = employees.filter(e => {
                     const role = (e.role || '').toLowerCase();
-                    return role !== 'pending' && role !== 'owner' && role !== '';
+                    return role !== 'pending' && role !== 'owner';
                 });
                 if (active.length === 0) {
                     activeContainer.innerHTML = '<div class="empty-state" style="padding:20px;">No active employees</div>';
                 } else {
                     activeContainer.innerHTML = active.map(emp => {
+                        const roleLower = (emp.role || '').toLowerCase();
+                        // determine badge class
+                        let badgeClass = 'no-role';
+                        let displayRole = 'No role';
+                        if (roleLower === 'manager') { badgeClass = 'manager';
+                            displayRole = 'manager'; } else if (roleLower === 'staff') { badgeClass = 'staff';
+                            displayRole = 'staff'; } else if (roleLower === 'owner') { badgeClass = 'owner';
+                            displayRole = 'owner'; } else if (roleLower === 'pending') { badgeClass = 'pending';
+                            displayRole = 'pending approval'; } else if (emp.role && emp.role.trim() !== '') {
+                            // custom role
+                            badgeClass = 'staff';
+                            displayRole = escapeHtml(emp.role);
+                        }
+
                         const roleItems = roles.length > 0 ?
                             roles.map(r =>
                                 `<div class="role-dropdown-item" onclick="event.stopPropagation(); setEmployeeRoleDirect('${emp.id}', '${escapeHtml(r.name)}')">${escapeHtml(r.name)}</div>`
                                 ).join('') :
                             '<div class="role-dropdown-item" style="color:#999;">No custom roles</div>';
+
                         return `
                             <div class="employee-item">
                                 <div class="employee-avatar">👤</div>
                                 <div class="employee-details">
                                     <div class="employee-name">${escapeHtml(emp.username)}</div>
-                                    <span class="employee-role ${emp.role}">${emp.role}</span>
+                                    <span class="employee-role ${badgeClass}">${displayRole}</span>
                                 </div>
                                 <div class="employee-actions">
                                     <div class="role-assign-wrapper">
@@ -1917,6 +1938,7 @@
                     }).join('');
                 }
 
+                // ── invitation code ──
                 const user = Backend.getCurrentUser();
                 let inviteCode = user ? user.get('invitationCode') : null;
                 if (!inviteCode) {
@@ -1999,11 +2021,13 @@
             }
         }
 
+        // ─── APPROVE: set role to empty string (not 'staff') ───
         async function approveEmployee(employeeId) {
             if (!confirm('Approve this employee?')) return;
-            const result = await Backend.assignRoleToEmployee(employeeId, 'staff');
+            // Assign an empty role – the employee will show as "No role" until a custom role is assigned
+            const result = await Backend.assignRoleToEmployee(employeeId, '');
             if (result.success) {
-                showStatus('Employee approved!', 'success');
+                showStatus('Employee approved! Assign a role from the dropdown.', 'success');
                 await loadEmployees();
             } else {
                 showStatus(result.message, 'error');
@@ -2076,8 +2100,6 @@
             const bulkActionsDiv = document.getElementById('orderBulkActions');
             try {
                 const orders = await Backend.getOrdersForBusiness(businessId);
-                // ✅ No override – use server field directly
-                // The backend now returns businessPickupConfirmed from the server
                 allOrdersCache = orders;
                 updatePendingDisplay();
                 selectedOrderIds.clear();
@@ -2114,7 +2136,6 @@
                                 </div>
                             `;
                     } else if (order.status === 'confirmed_by_business') {
-                        // ✅ Use server field directly
                         if (order.businessPickupConfirmed) {
                             statusClass = 'status-picked-up';
                             statusText = 'Picked up - awaiting customer';
@@ -2211,7 +2232,6 @@
             if (!confirm('Confirm this order? The customer will be notified of the pickup time.')) return;
             const result = await Backend.confirmOrderByBusiness(orderId, collectByTime);
             if (result.success) {
-                // ✅ No localStorage – the server field will be set when business confirms pickup later
                 showStatus('Order confirmed! Waiting for customer to pick up.', 'success');
                 await loadOrders();
                 await loadStats();
@@ -2235,7 +2255,6 @@
             for (const orderId of Array.from(selectedOrderIds)) {
                 const result = await Backend.confirmOrderByBusiness(orderId, collectByTime);
                 if (result.success) {
-                    // ✅ No localStorage update
                     success++;
                 } else error++;
             }
@@ -2422,7 +2441,6 @@
                 const order = await query.get(currentDetailOrderId);
                 order.set("businessPickupConfirmed", true);
                 await order.save();
-                // ✅ No localStorage – the server now holds the flag
                 const cachedOrder = allOrdersCache.find(o => o.id === currentDetailOrderId);
                 if (cachedOrder) { cachedOrder.businessPickupConfirmed = true; }
                 showStatus('✅ Business pickup confirmed. Waiting for customer confirmation.', 'success');
@@ -2446,7 +2464,6 @@
             try {
                 const result = await Backend.updateClaimStatus(currentDetailOrderId, 'cancelled');
                 if (result.success) {
-                    // ✅ No localStorage cleanup – status is on the server
                     showStatus('❌ Order cancelled', 'success');
                     closeOrderDetailModal();
                     await loadOrders();
