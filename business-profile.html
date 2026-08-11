@@ -397,12 +397,10 @@
             background: #e0e0e0;
             color: #666;
         }
-        /* ─── PENDING: not red ─── */
         .employee-role.pending {
             background: #fff8e1;
-            color: #f57c00;
+            color: #f57c00; /* orange */
         }
-        /* ─── empty / no role ─── */
         .employee-role.no-role {
             background: #f0f0f0;
             color: #999;
@@ -1898,17 +1896,29 @@
                 } else {
                     activeContainer.innerHTML = active.map(emp => {
                         const roleLower = (emp.role || '').toLowerCase();
-                        // determine badge class
                         let badgeClass = 'no-role';
-                        let displayRole = 'No role';
-                        if (roleLower === 'manager') { badgeClass = 'manager';
-                            displayRole = 'manager'; } else if (roleLower === 'staff') { badgeClass = 'staff';
-                            displayRole = 'staff'; } else if (roleLower === 'owner') { badgeClass = 'owner';
-                            displayRole = 'owner'; } else if (roleLower === 'pending') { badgeClass = 'pending';
-                            displayRole = 'pending approval'; } else if (emp.role && emp.role.trim() !== '') {
+                        let displayRole = '—'; // default for empty role
+
+                        if (roleLower === 'manager') {
+                            badgeClass = 'manager';
+                            displayRole = 'manager';
+                        } else if (roleLower === 'staff') {
+                            badgeClass = 'staff';
+                            displayRole = 'staff';
+                        } else if (roleLower === 'owner') {
+                            badgeClass = 'owner';
+                            displayRole = 'owner';
+                        } else if (roleLower === 'pending') {
+                            badgeClass = 'pending';
+                            displayRole = 'pending approval';
+                        } else if (emp.role && emp.role.trim() !== '') {
                             // custom role
                             badgeClass = 'staff';
                             displayRole = escapeHtml(emp.role);
+                        } else {
+                            // no role – leave as '—' with no-role class
+                            badgeClass = 'no-role';
+                            displayRole = '—';
                         }
 
                         const roleItems = roles.length > 0 ?
@@ -2024,7 +2034,7 @@
         // ─── APPROVE: set role to empty string (not 'staff') ───
         async function approveEmployee(employeeId) {
             if (!confirm('Approve this employee?')) return;
-            // Assign an empty role – the employee will show as "No role" until a custom role is assigned
+            // Assign an empty role – the employee will show as "—" until a custom role is assigned
             const result = await Backend.assignRoleToEmployee(employeeId, '');
             if (result.success) {
                 showStatus('Employee approved! Assign a role from the dropdown.', 'success');
