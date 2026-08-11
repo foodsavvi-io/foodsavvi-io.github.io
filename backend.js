@@ -493,7 +493,7 @@ const Backend = {
             if (options.search) {
                 query.matches("foodName", new RegExp(options.search, "i"));
             }
-            query.limit(options.limit || 100);
+            query.limit(options.limit || 9999999);
             
             const ads = await query.find();
             return ads.map(ad => ({
