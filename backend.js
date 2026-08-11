@@ -475,6 +475,7 @@ const Backend = {
         }
     },
 
+    // 🔥 FIX: Removed limit so ALL ads are fetched
     async getActiveAds(options = {}) {
         try {
             const Ad = Parse.Object.extend("Advertisement");
@@ -493,7 +494,8 @@ const Backend = {
             if (options.search) {
                 query.matches("foodName", new RegExp(options.search, "i"));
             }
-            query.limit(options.limit || 9999999);
+            
+            // 🔥 REMOVED: query.limit(...) — fetching ALL ads now
             
             const ads = await query.find();
             return ads.map(ad => ({
