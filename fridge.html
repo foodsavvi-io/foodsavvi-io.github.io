@@ -6,6 +6,7 @@
     <title>foodsavvi • fridge</title>
     <link rel="icon" type="image/png" href="assets/icon.png">
     <link rel="shortcut icon" type="image/png" href="assets/icon.png">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -95,7 +96,7 @@
             padding-bottom: 80px;
         }
         
-        /* ========== FRIDGE STATUS BOX – exact index style with gaps ========== */
+        /* ========== FRIDGE STATUS BOX ========== */
         .fridge-summary {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
@@ -118,7 +119,6 @@
             align-items: center;
             gap: 8px;
         }
-        /* Fridge icon size fixed to 24px (same as index) */
         .fridge-header h3 img {
             width: 24px;
             height: 24px;
@@ -167,10 +167,9 @@
         .stat-label {
             font-size: 11px;
             opacity: 0.95;
-            white-space: nowrap;   /* one line */
+            white-space: nowrap;
             line-height: 1.3;
         }
-        /* Small screens: allow wrap if really needed but keep font small */
         @media (max-width: 360px) {
             .stat-label { font-size: 10px; white-space: normal; }
             .stat-number { font-size: 28px; }
@@ -193,23 +192,92 @@
             from { opacity: 0; transform: scale(0.8); }
             to { opacity: 1; transform: scale(1); }
         }
-        /* No footer – removed completely */
-        /* ========== END FRIDGE STATUS BOX ========== */
         
+        /* ========== SCANNER SECTION ========== */
+        .scanner-section {
+            background: linear-gradient(135deg, #f5b042, #ff9500);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            color: white;
+        }
+        .scanner-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .scanner-header h3 {
+            font-size: 16px;
+        }
+        .scan-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .scan-btn:active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(0.98);
+        }
+        .scanner-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            margin-bottom: 12px;
+        }
+        .scanner-container.active {
+            display: block;
+        }
+        #reader {
+            width: 100%;
+            min-height: 300px;
+        }
+        .stop-scan-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .manual-entry-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        /* ========== ADD SECTION ========== */
         .add-section {
             background: #f8f9fa;
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 20px;
         }
-        
         .section-title {
             font-size: 14px;
             font-weight: 600;
             color: #666;
             margin-bottom: 12px;
         }
-        
         .dropdown, .input-field {
             width: 100%;
             padding: 14px;
@@ -219,7 +287,11 @@
             background: white;
             margin-bottom: 12px;
         }
-        
+        .input-field.filled-by-scanner {
+            background: #e8f5e8;
+            border-color: #34c759;
+            animation: pulse 0.5s ease;
+        }
         .add-btn {
             width: 100%;
             padding: 16px;
@@ -232,27 +304,24 @@
             cursor: pointer;
         }
         
+        /* ========== ITEMS ========== */
         .items-header {
             display: flex;
             justify-content: space-between;
             margin: 16px 0;
         }
-        
         .items-title {
             font-weight: 600;
         }
-        
         .sort-btn {
             background: none;
             border: none;
             color: #667eea;
             cursor: pointer;
         }
-        
         .items-container {
             margin-bottom: 20px;
         }
-        
         .item {
             background: #f8f9fa;
             border-radius: 12px;
@@ -263,17 +332,14 @@
             gap: 12px;
             border-left: 4px solid #34c759;
         }
-        
         .item.expired {
             border-left-color: #ff3b30;
             background: #ffebee;
         }
-        
         .item.expiring-soon {
             border-left-color: #ff9500;
             background: #fff3e0;
         }
-        
         .item-icon {
             width: 40px;
             height: 40px;
@@ -284,16 +350,13 @@
             justify-content: center;
             font-size: 20px;
         }
-        
         .item-details {
             flex: 1;
         }
-        
         .item-name {
             font-weight: 600;
             margin-bottom: 4px;
         }
-        
         .item-expiry {
             font-size: 13px;
             color: #666;
@@ -302,7 +365,6 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        
         .days-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -310,27 +372,22 @@
             font-size: 11px;
             font-weight: 500;
         }
-        
         .days-badge.good {
             background: #e8f5e8;
             color: #34c759;
         }
-        
         .days-badge.warning {
             background: #fff3e0;
             color: #ff9500;
         }
-        
         .days-badge.expired {
             background: #ffebee;
             color: #ff3b30;
         }
-        
         .item-actions {
             display: flex;
             gap: 4px;
         }
-        
         .item-btn {
             width: 36px;
             height: 36px;
@@ -341,31 +398,25 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        
         .item-btn:active {
             transform: scale(0.95);
         }
-        
         .edit-btn {
             color: #667eea;
         }
-        
         .delete-btn {
             color: #ff3b30;
         }
-        
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #999;
         }
-        
         .empty-emoji {
             font-size: 48px;
             margin-bottom: 12px;
             opacity: 0.5;
         }
-        
         .add-link {
             display: inline-block;
             margin-top: 16px;
@@ -390,11 +441,9 @@
             padding: 20px;
             z-index: 100;
         }
-        
         .modal.show {
             display: flex;
         }
-        
         .modal-content {
             background: white;
             border-radius: 20px;
@@ -402,12 +451,10 @@
             width: 100%;
             max-width: 320px;
         }
-        
         .modal-content h3 {
             margin-bottom: 16px;
             font-size: 18px;
         }
-        
         .modal-content input {
             width: 100%;
             padding: 14px;
@@ -416,12 +463,10 @@
             font-size: 16px;
             margin-bottom: 16px;
         }
-        
         .modal-buttons {
             display: flex;
             gap: 12px;
         }
-        
         .modal-buttons button {
             flex: 1;
             padding: 12px;
@@ -431,12 +476,10 @@
             font-weight: 600;
             cursor: pointer;
         }
-        
         .modal-buttons .primary {
             background: #667eea;
             color: white;
         }
-        
         .modal-buttons .secondary {
             background: #f0f0f0;
             color: #666;
@@ -455,7 +498,6 @@
             display: flex;
             justify-content: space-around;
         }
-        
         .nav-item {
             text-decoration: none;
             color: #999;
@@ -463,11 +505,9 @@
             text-align: center;
             flex: 1;
         }
-        
         .nav-item.active {
             color: #007aff;
         }
-        
         .nav-emoji {
             font-size: 20px;
             margin-bottom: 2px;
@@ -475,7 +515,6 @@
             height: 24px;
             line-height: 24px;
         }
-        
         .nav-emoji img {
             width: auto;
             height: 100%;
@@ -499,17 +538,14 @@
             opacity: 0;
             pointer-events: none;
         }
-        
         .notification.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
             pointer-events: auto;
         }
-        
         .notification.success {
             background: #34c759;
         }
-        
         .notification.error {
             background: #ff3b30;
         }
@@ -524,7 +560,7 @@
         </div>
         
         <div class="content">
-            <!-- FRIDGE STATUS BOX – with 24px icon and one-line labels -->
+            <!-- FRIDGE STATUS BOX -->
             <div class="fridge-summary">
                 <div class="fridge-header">
                     <h3><img src="assets/fridge.png" alt="fridge"> fridge status</h3>
@@ -545,6 +581,25 @@
                 </div>
             </div>
             
+            <!-- BARCODE SCANNER -->
+            <div class="scanner-section">
+                <div class="scanner-header">
+                    <span>📷</span>
+                    <h3>Scan Barcode to Add</h3>
+                </div>
+                <button class="scan-btn" onclick="startScanner()">
+                    📸 Scan Product Barcode
+                </button>
+                <div class="scanner-container" id="scannerContainer">
+                    <div id="reader"></div>
+                    <button class="stop-scan-btn" onclick="stopScanner()">❌ Stop Scanning</button>
+                </div>
+                <button class="manual-entry-btn" onclick="hideScanner()">
+                    ✏️ Enter Manually Instead
+                </button>
+            </div>
+            
+            <!-- ADD SECTION -->
             <div class="add-section">
                 <div class="section-title">➕ add to fridge</div>
                 <select id="foodDropdown" class="dropdown">
@@ -604,15 +659,39 @@
     <script src="backend.js"></script>
     
     <script>
-        const commonFoods = [
-            "Milk", "Eggs", "Bread", "Rice", "Chicken",
-            "Beef", "Apples", "Bananas", "Cheese", "Yogurt"
-        ];
-        
+        // ===== PRODUCT DATABASE FOR BARCODE SCANNING =====
+        const productDatabase = {
+            "8901234567890": { name: "Amul Milk" },
+            "8901234567891": { name: "Britannia Bread" },
+            "8901234567892": { name: "Nestle Maggi" },
+            "8901234567893": { name: "Dove Soap" },
+            "8901234567894": { name: "Patanjali Atta" },
+            "8901234567895": { name: "Amul Butter" },
+            "8901234567896": { name: "Tata Salt" },
+            "8901234567897": { name: "Coca Cola" },
+            "8901234567898": { name: "Lays Chips" },
+            "8901234567899": { name: "Kissan Jam" },
+            "123456789012": { name: "Organic Milk" },
+            "123456789013": { name: "Free Range Eggs" },
+            "123456789014": { name: "Sourdough Bread" },
+            "123456789015": { name: "Chicken Breast" },
+            "123456789016": { name: "Broccoli" },
+            "123456789017": { name: "Bananas" },
+            "123456789018": { name: "Greek Yogurt" },
+            "123456789019": { name: "Frozen Pizza" }
+        };
+
+        let html5QrCode = null;
+        let isScanning = false;
         let sortAscending = true;
         let items = [];
         let editingIndex = -1;
         let notificationTimeout = null;
+        
+        const commonFoods = [
+            "Milk", "Eggs", "Bread", "Rice", "Chicken",
+            "Beef", "Apples", "Bananas", "Cheese", "Yogurt"
+        ];
         
         document.addEventListener("DOMContentLoaded", async function() {
             const user = Backend.getCurrentUser();
@@ -623,6 +702,11 @@
             await loadFridge();
             populateDropdown();
             displayItems();
+            // Set default expiry to 7 days from now
+            const today = new Date();
+            const nextWeek = new Date();
+            nextWeek.setDate(today.getDate() + 7);
+            document.getElementById('expiryDate').value = nextWeek.toISOString().split('T')[0];
         });
         
         async function loadFridge() {
@@ -708,11 +792,10 @@
             }
             
             if (editingIndex >= 0 && editingIndex < items.length) {
-                const oldExpiry = items[editingIndex].expiry;
                 items[editingIndex].expiry = newExpiry;
                 await saveFridge();
                 displayItems();
-                showNotification(`Expiry date updated from ${oldExpiry} to ${newExpiry}`, "success");
+                showNotification(`Expiry updated`, "success");
             }
             
             closeEditModal();
@@ -850,6 +933,129 @@
             showNotification("Synced!", "success");
         }
         
+        // ===== BARCODE SCANNER FUNCTIONS =====
+        async function startScanner() {
+            const scannerContainer = document.getElementById('scannerContainer');
+            scannerContainer.classList.add('active');
+            
+            if (html5QrCode === null) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            if (!isScanning) {
+                try {
+                    isScanning = true;
+                    await html5QrCode.start(
+                        { facingMode: "environment" },
+                        {
+                            fps: 10,
+                            qrbox: { width: 250, height: 250 }
+                        },
+                        onScanSuccess,
+                        onScanError
+                    );
+                    showNotification('Scanner started. Point camera at barcode.', 'info');
+                } catch (err) {
+                    console.error("Failed to start scanner:", err);
+                    showNotification('Could not start camera. Please check permissions.', 'error');
+                    isScanning = false;
+                }
+            }
+        }
+        
+        async function stopScanner() {
+            if (html5QrCode && isScanning) {
+                try {
+                    await html5QrCode.stop();
+                    isScanning = false;
+                    const scannerContainer = document.getElementById('scannerContainer');
+                    scannerContainer.classList.remove('active');
+                    showNotification('Scanner stopped', 'info');
+                } catch (err) {
+                    console.error("Failed to stop scanner:", err);
+                }
+            } else {
+                const scannerContainer = document.getElementById('scannerContainer');
+                scannerContainer.classList.remove('active');
+            }
+        }
+        
+        function hideScanner() {
+            stopScanner();
+        }
+        
+        async function onScanSuccess(decodedText, decodedResult) {
+            console.log(`Scanned barcode: ${decodedText}`);
+            stopScanner();
+            
+            const product = productDatabase[decodedText];
+            
+            if (product) {
+                document.getElementById('foodName').value = product.name;
+                document.getElementById('foodName').classList.add('filled-by-scanner');
+                
+                // Set expiry to 7 days from now
+                const today = new Date();
+                const nextWeek = new Date();
+                nextWeek.setDate(today.getDate() + 7);
+                document.getElementById('expiryDate').value = nextWeek.toISOString().split('T')[0];
+                
+                setTimeout(() => {
+                    document.getElementById('foodName').classList.remove('filled-by-scanner');
+                }, 1000);
+                
+                showNotification(`✅ Found: ${product.name}`, 'success');
+                await fetchProductInfo(decodedText);
+            } else {
+                showNotification(`⚠️ Product not found. Please enter details manually.`, 'info');
+                await fetchProductInfo(decodedText);
+            }
+        }
+        
+        async function fetchProductInfo(barcode) {
+            try {
+                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+                const data = await response.json();
+                
+                if (data.status === 1 && data.product) {
+                    const product = data.product;
+                    
+                    if (product.product_name) {
+                        document.getElementById('foodName').value = product.product_name;
+                        document.getElementById('foodName').classList.add('filled-by-scanner');
+                        setTimeout(() => document.getElementById('foodName').classList.remove('filled-by-scanner'), 1000);
+                    }
+                    
+                    showNotification(`📦 Found product info from online database!`, 'success');
+                    
+                    if (product.image_url) {
+                        fetchImageAsBase64(product.image_url);
+                    }
+                }
+            } catch (error) {
+                console.log('Online lookup failed:', error);
+            }
+        }
+        
+        async function fetchImageAsBase64(url) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    // Store image as base64 if needed
+                    console.log("Image fetched (not stored in fridge)");
+                };
+                reader.readAsDataURL(blob);
+            } catch (error) {
+                console.log('Could not fetch product image:', error);
+            }
+        }
+        
+        function onScanError(errorMessage) {
+            // Silently ignore
+        }
+        
         function showNotification(message, type) {
             const notif = document.getElementById('notification');
             if (notificationTimeout) clearTimeout(notificationTimeout);
@@ -869,6 +1075,10 @@
         window.closeEditModal = closeEditModal;
         window.toggleSort = toggleSort;
         window.syncWithCloud = syncWithCloud;
+        window.startScanner = startScanner;
+        window.stopScanner = stopScanner;
+        window.hideScanner = hideScanner;
+        window.onScanSuccess = onScanSuccess;
     </script>
 </body>
 </html>
