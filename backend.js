@@ -49,16 +49,13 @@ const Backend = {
             if (role === "advertiser" && businessDetails) {
                 // ===== EMPLOYEE REGISTRATION =====
                 if (businessDetails.isEmployee) {
-                    // Set role to 'pending' until owner approves
                     user.set("businessRole", "pending");
                     user.set("businessId", businessDetails.businessId);
                     user.set("businessName", businessDetails.businessName);
-                    user.set("businessStaffStatus", "pending"); // Add pending status
+                    user.set("businessStaffStatus", "pending");
                     
-                    // Save the new employee user FIRST
                     await user.signUp();
 
-                    // ===== CRITICAL: Use Master Key to update Owner =====
                     const ownerQuery = new Parse.Query(Parse.User);
                     const owner = await ownerQuery.get(businessDetails.businessId, { useMasterKey: true });
                     
@@ -67,16 +64,13 @@ const Backend = {
                         if (!staffList.includes(user.id)) {
                             staffList.push(user.id);
                             owner.set("businessStaff", staffList);
-                            // Save the owner with Master Key to bypass permissions
                             await owner.save(null, { useMasterKey: true });
                         }
                     }
 
-                    // Login the employee immediately
                     await Parse.User.logIn(username, password);
 
                 } else {
-                    // ===== OWNER REGISTRATION =====
                     const inviteCode = Math.floor(100000 + Math.random() * 900000).toString();
                     user.set("invitationCode", inviteCode);
 
@@ -104,7 +98,6 @@ const Backend = {
                 await user.signUp();
             }
             
-            // Sync LocalStorage
             localStorage.setItem("loggedInUser", username);
             localStorage.setItem("userRole", role);
             
@@ -231,7 +224,6 @@ const Backend = {
             if (!currentUser) return { success: false, message: "Please login first" };
             if (currentUser.id !== userId) return { success: false, message: "Unauthorized" };
             
-            // Delete related data
             try {
                 const Order = Parse.Object.extend("Order");
                 const orderQuery = new Parse.Query(Order);
@@ -374,13 +366,11 @@ const Backend = {
         }
     },
 
-    // ===== FIXED: Fetch fresh owner data so staff list actually loads =====
     async getStaffList() {
         try {
             const currentUser = Parse.User.current();
             if (!currentUser) return [];
             
-            // 🔥 FIX: Fetch fresh owner data from server
             const freshOwner = await new Parse.Query(Parse.User).get(currentUser.id, { useMasterKey: true });
             const staffIds = freshOwner.get("businessStaff") || [];
             
@@ -493,7 +483,8 @@ const Backend = {
             if (options.search) {
                 query.matches("foodName", new RegExp(options.search, "i"));
             }
-            query.limit(options.limit || 1000);
+            
+            query.limit(1000);
             
             const ads = await query.find();
             return ads.map(ad => ({
@@ -687,7 +678,6 @@ const Backend = {
                     await order.save(null, { useMasterKey: true });
                     processedOrders.push(order);
                     
-                    // Add to business pending wallet
                     const businessUser = await new Parse.Query(Parse.User).get(ad.get("businessId"), { useMasterKey: true });
                     const currentPending = businessUser.get("pendingWalletBalance") || 0;
                     businessUser.set("pendingWalletBalance", currentPending + itemTotal);
@@ -758,7 +748,6 @@ const Backend = {
         }
     },
 
-    // ========== 🔥 FIX: getOrdersForBusiness includes businessPickupConfirmed ==========
     async getOrdersForBusiness(businessId) {
         try {
             if (!businessId) {
@@ -784,7 +773,6 @@ const Backend = {
                 status: o.get("status"),
                 createdAt: o.get("createdAt"),
                 collectByTime: o.get("collectByTime"),
-                // ✅ This line ensures the flag is read from the server
                 businessPickupConfirmed: o.get("businessPickupConfirmed") || false
             }));
         } catch (error) {
@@ -854,23 +842,19 @@ const Backend = {
             businessUser.set("businessWalletBalance", currentBalance + orderAmount);
             await businessUser.save(null, { useMasterKey: true });
             
-            // ===== AUTO-ADD TO FRIDGE =====
             try {
                 const foodName = order.get("foodName") || "Unknown Item";
                 const batchNumber = order.get("batchNumber") || "";
                 
-                // Calculate expiry date: 7 days from now
                 const expiryDate = new Date();
                 expiryDate.setDate(expiryDate.getDate() + 7);
                 const expiryStr = expiryDate.toISOString().split('T')[0];
                 
-                // Load current fridge items
                 const Fridge = Parse.Object.extend("Fridge");
                 const fridgeQuery = new Parse.Query(Fridge);
                 fridgeQuery.equalTo("userId", currentUser.id);
                 const existingItems = await fridgeQuery.find({ useMasterKey: true });
                 
-                // Add new item
                 const newItem = new Fridge();
                 newItem.set("userId", currentUser.id);
                 newItem.set("name", foodName);
@@ -885,7 +869,6 @@ const Backend = {
                 console.log(`✅ Added "${foodName}" to fridge for user ${currentUser.id}`);
             } catch (fridgeError) {
                 console.error("Error adding to fridge:", fridgeError);
-                // Continue even if fridge add fails
             }
             
             await this.sendNotification(order.get("businessId"),
@@ -1174,17 +1157,19 @@ const Backend = {
         }
     },
 
-    // ========== FRIDGE FUNCTIONS ==========
+    // ========== 🔥 FIXED FRIDGE FUNCTIONS (USE MASTER KEY) ==========
     
     async saveFridgeItems(items) {
         try {
             const currentUser = Parse.User.current();
             if (!currentUser) return { success: false };
+            
             const Fridge = Parse.Object.extend("Fridge");
             const query = new Parse.Query(Fridge);
             query.equalTo("userId", currentUser.id);
-            const oldItems = await query.find();
-            await Parse.Object.destroyAll(oldItems);
+            const oldItems = await query.find({ useMasterKey: true });
+            await Parse.Object.destroyAll(oldItems, { useMasterKey: true });
+            
             const newItems = items.map(item => {
                 const fridgeItem = new Fridge();
                 fridgeItem.set("userId", currentUser.id);
@@ -1197,9 +1182,16 @@ const Backend = {
                 fridgeItem.set("source", item.source || "manual");
                 return fridgeItem;
             });
-            await Parse.Object.saveAll(newItems);
+            await Parse.Object.saveAll(newItems, { useMasterKey: true });
+            
+            // Also save to localStorage as backup
+            localStorage.setItem('foodItems', JSON.stringify(items));
+            
             return { success: true };
         } catch (error) {
+            console.error("saveFridgeItems error:", error);
+            // Fallback: save to localStorage only
+            localStorage.setItem('foodItems', JSON.stringify(items));
             return { success: false };
         }
     },
@@ -1208,11 +1200,13 @@ const Backend = {
         try {
             const currentUser = Parse.User.current();
             if (!currentUser) return [];
+            
             const Fridge = Parse.Object.extend("Fridge");
             const query = new Parse.Query(Fridge);
             query.equalTo("userId", currentUser.id);
-            const items = await query.find();
-            return items.map(item => ({
+            const items = await query.find({ useMasterKey: true });
+            
+            const result = items.map(item => ({
                 id: item.id,
                 name: item.get("name"),
                 expiry: item.get("expiryDate").toISOString().split('T')[0],
@@ -1222,8 +1216,16 @@ const Backend = {
                 batchNumber: item.get("batchNumber") || "",
                 source: item.get("source") || "manual"
             }));
+            
+            // Backup to localStorage
+            localStorage.setItem('foodItems', JSON.stringify(result));
+            
+            return result;
         } catch (error) {
-            return [];
+            console.error("loadFridgeItems error:", error);
+            // Fallback: return localStorage data
+            const local = localStorage.getItem('foodItems');
+            return local ? JSON.parse(local) : [];
         }
     },
 
@@ -1639,7 +1641,6 @@ const Backend = {
             
             const newItems = items.map(item => {
                 const invItem = new Inventory();
-                // Use the passed businessId if available, otherwise currentUser.id
                 invItem.set("businessId", item.businessId || currentUser.id);
                 invItem.set("name", item.name);
                 invItem.set("batchNumber", item.batchNumber || "");
@@ -1663,13 +1664,11 @@ const Backend = {
         }
     },
 
-    // 🔥 FIXED: Accept optional businessId parameter
     async loadInventoryItems(businessId) {
         try {
             const currentUser = Parse.User.current();
             if (!currentUser) return [];
             
-            // Use the passed businessId, or fallback to current user's ID (for owners)
             const id = businessId || currentUser.id;
             
             const Inventory = Parse.Object.extend("Inventory");
@@ -1746,7 +1745,6 @@ const Backend = {
 
     // ========== ROLE & PERMISSION SYSTEM ==========
     
-    // Create a new custom role
     async createRole(businessId, roleName, permissions) {
         try {
             const currentUser = Parse.User.current();
@@ -1778,7 +1776,6 @@ const Backend = {
         }
     },
 
-    // Get all roles for a business
     async getRoles(businessId) {
         try {
             if (!businessId) {
@@ -1803,7 +1800,6 @@ const Backend = {
         }
     },
 
-    // Delete a role
     async deleteRole(roleId) {
         try {
             const currentUser = Parse.User.current();
@@ -1828,7 +1824,6 @@ const Backend = {
         }
     },
 
-    // ===== FIXED: Assign role to employee (with Master Key) =====
     async assignRoleToEmployee(employeeId, roleName) {
         try {
             const currentUser = Parse.User.current();
@@ -1837,7 +1832,6 @@ const Backend = {
                 return { success: false, message: "Only owners can assign roles" };
             }
 
-            // 🔥 FIX: Use Master Key to fetch employee
             const employee = await new Parse.Query(Parse.User).get(employeeId, { useMasterKey: true });
             if (!employee) {
                 return { success: false, message: "Employee not found" };
@@ -1846,7 +1840,6 @@ const Backend = {
             employee.set("businessRole", roleName);
             await employee.save(null, { useMasterKey: true });
 
-            // Ensure they are in the owner's staff list
             const staffList = currentUser.get("businessStaff") || [];
             if (!staffList.includes(employeeId)) {
                 staffList.push(employeeId);
@@ -1861,13 +1854,11 @@ const Backend = {
         }
     },
 
-    // Get the effective permissions for a specific employee
     async getEmployeePermissions(employeeId) {
         try {
             const employee = await new Parse.Query(Parse.User).get(employeeId);
             if (!employee) return {};
             
-            // Owners bypass permissions
             if (employee.get("businessRole") === "owner") {
                 return { isOwner: true };
             }
@@ -1875,7 +1866,6 @@ const Backend = {
             const roleName = employee.get("businessRole");
             const businessId = employee.get("businessId");
             
-            // If user is still pending, they have no permissions
             if (roleName === 'pending' || !businessId) {
                 return { isPending: true };
             }
