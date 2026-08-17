@@ -1151,7 +1151,7 @@
 </div>
 
 <!-- Modals -->
-<div class="modal" id="topUpModal"><div class="modal-content"><div class="modal-title">💳 Add Funds</div><input type="number" class="modal-input" id="topUpAmount" placeholder="Enter amount ($)" min="1" step="1"><div class="modal-buttons"><button class="modal-btn cancel" onclick="closeTopUpModal()">Cancel</button><button class="modal-btn confirm" onclick="processTopUp()">Add Funds</button></div></div></div>
+<div class="modal" id="topUpModal"><div class="modal-content"><div class="modal-title">💳 Add Funds</div><input type="number" class="modal-input" id="topUpAmount" placeholder="Enter amount ($)" min="1" max="9999" step="1"><div class="modal-buttons"><button class="modal-btn cancel" onclick="closeTopUpModal()">Cancel</button><button class="modal-btn confirm" onclick="processTopUp()">Add Funds</button></div></div></div>
 <div class="modal" id="editModal"><div class="modal-content"><div class="modal-title" id="modalTitle">Edit</div><input type="text" class="modal-input" id="modalInput" placeholder="Enter value"><div class="modal-buttons"><button class="modal-btn cancel" onclick="closeEditModal()">Cancel</button><button class="modal-btn confirm" onclick="saveProfileEdit()">Save</button></div></div></div>
 <div class="modal" id="deleteAccountModal">
     <div class="modal-content">
@@ -1640,6 +1640,7 @@
     async function processTopUp() {
         const amount = parseFloat(document.getElementById('topUpAmount').value);
         if (isNaN(amount)||amount<1) { alert('Minimum $1'); return; }
+        if (amount > 9999) { alert('Maximum $9999 allowed'); return; }
         closeTopUpModal();
         document.getElementById('loadingOverlay').style.display='flex';
         await new Promise(r=>setTimeout(r,1500));
