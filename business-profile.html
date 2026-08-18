@@ -397,9 +397,10 @@
             background: #e0e0e0;
             color: #666;
         }
+        /* UPDATED: pending approval to orange */
         .employee-role.pending {
-            background: #fff8e1;
-            color: #f57c00; /* orange */
+            background: #fff3e0;
+            color: #e65100;
         }
         .employee-role.no-role {
             background: #f0f0f0;
@@ -1897,7 +1898,8 @@
                     activeContainer.innerHTML = active.map(emp => {
                         const roleLower = (emp.role || '').toLowerCase();
                         let badgeClass = 'no-role';
-                        let displayRole = '—'; // default for empty role
+                        let displayRole = ''; // Default to empty
+                        let roleHtml = '';    // We'll conditionally build this
 
                         if (roleLower === 'manager') {
                             badgeClass = 'manager';
@@ -1916,15 +1918,19 @@
                             badgeClass = 'staff';
                             displayRole = escapeHtml(emp.role);
                         } else {
-                            // no role – leave as '—' with no-role class
-                            badgeClass = 'no-role';
-                            displayRole = '—';
+                            // No role assigned: leave displayRole empty so nothing renders
+                            displayRole = '';
+                        }
+
+                        // Only render the badge if displayRole is not empty
+                        if (displayRole) {
+                            roleHtml = `<span class="employee-role ${badgeClass}">${displayRole}</span>`;
                         }
 
                         const roleItems = roles.length > 0 ?
                             roles.map(r =>
                                 `<div class="role-dropdown-item" onclick="event.stopPropagation(); setEmployeeRoleDirect('${emp.id}', '${escapeHtml(r.name)}')">${escapeHtml(r.name)}</div>`
-                                ).join('') :
+                            ).join('') :
                             '<div class="role-dropdown-item" style="color:#999;">No custom roles</div>';
 
                         return `
@@ -1932,7 +1938,7 @@
                                 <div class="employee-avatar">👤</div>
                                 <div class="employee-details">
                                     <div class="employee-name">${escapeHtml(emp.username)}</div>
-                                    <span class="employee-role ${badgeClass}">${displayRole}</span>
+                                    ${roleHtml}
                                 </div>
                                 <div class="employee-actions">
                                     <div class="role-assign-wrapper">
