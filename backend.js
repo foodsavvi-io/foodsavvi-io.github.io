@@ -8,7 +8,7 @@ Parse.initialize(
 );
 Parse.serverURL = "https://parseapi.back4app.com";
 
-const MASTER_KEY = "WxkZjSeBNKbHWyouy4fSew0hLoFnxyDztZtlvxrM";
+const MASTER_KEY = "9SNnuMZP4bJtxMIroLBjktUkJW2hQ7SRuuDBTZsx";
 
 // ✅ Set Master Key globally (works in browser)
 Parse.CoreManager.set('MASTER_KEY', MASTER_KEY);
